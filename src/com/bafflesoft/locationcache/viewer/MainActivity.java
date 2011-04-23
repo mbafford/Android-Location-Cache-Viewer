@@ -123,7 +123,7 @@ public class MainActivity extends MapActivity {
 			markersCell.setDrawCircles(true);
 			
 			markersWifi.setFillColor(0xff9E7151);
-			markersWifi.setFillColor(0xff5680FC);
+			markersCell.setFillColor(0xff5680FC);
 
 			mapView.getOverlays().add(markersCell);
 			mapView.getOverlays().add(markersWifi);
@@ -132,8 +132,7 @@ public class MainActivity extends MapActivity {
 		loadPointsAndDraw(mapView, LOCATION_CACHE_CELL, markersCell, drawCell);
 		loadPointsAndDraw(mapView, LOCATION_CACHE_WIFI, markersWifi, drawWifi);			
 		
-		//zoomToVisibleMarkers();
-		mapView.getController().animateTo(new GeoPoint((int)(38.948296*1E6),(int)(-77.409089*1E6)));
+		zoomToVisibleMarkers();
 	}
 	
 	private void zoomToVisibleMarkers()
@@ -295,7 +294,7 @@ public class MainActivity extends MapActivity {
 			double distanceAcrossMeters = calculateDistanceAcrossMeters(mapView);
 			double metersPerPixel = distanceAcrossMeters / widthPx;
 
-			boolean zoomedTooFarOut = metersPerPixel > 300;
+			boolean zoomedTooFarOut = metersPerPixel > 150;
 			
 			if ( drawCircles && !zoomedTooFarOut ) {		
 				
