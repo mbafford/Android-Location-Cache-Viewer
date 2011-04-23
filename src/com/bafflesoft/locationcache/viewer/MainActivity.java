@@ -58,16 +58,19 @@ public class MainActivity extends MapActivity {
 	private long lastLoad = 0;
 	
 	private boolean firstLoad = true;
+	private boolean noRoot    = false;
 	
 	private ProgressDialog dialog = null;
 	private LoadDataTask   task   = null;
 	
-	public class LoadDataTask extends AsyncTask<Void, String, Void> {
+	public class LoadDataTask extends AsyncTask<Void, String, Boolean> {
 		private List<LocationInformation> pointsCell = null;
 		private List<LocationInformation> pointsWifi = null;
 		
+		private Exception error = null;
+		
 		@Override
-		protected Void doInBackground(Void... params) {
+		protected Boolean doInBackground(Void... params) {
 			try {
 				publishProgress("Loading Cell Tower Locations");
 				pointsCell = loadPoints(LOCATION_CACHE_CELL);
@@ -77,13 +80,12 @@ public class MainActivity extends MapActivity {
 				
 				drawLocations(pointsCell, pointsWifi);
 				
-			} catch ( NoRootAccessException ex ) {
-				MainActivity.this.showError("Root Access Required", ex);
-			} catch ( RunCommandException ex ) {
-				MainActivity.this.showError("Error Reading Location Cache", ex);
+				return Boolean.TRUE;
+				
+			} catch ( Exception ex ) {
+				this.error = ex;
+				return Boolean.FALSE;
 			}
-			
-			return null;
 		}
 		
 		@Override
@@ -99,17 +101,30 @@ public class MainActivity extends MapActivity {
 		}
 		
 		@Override
-		protected void onPostExecute(Void result) {
+		protected void onPostExecute(Boolean result) {
 			super.onPostExecute(result);
-			
+
 			dialog.dismiss();
 			dialog = null;
-			
+
 			task = null;
 			
-			lastLoad = System.currentTimeMillis();
-			
-			zoomToVisibleMarkers();
+			if ( !result || error != null )
+			{
+				if ( error instanceof NoRootAccessException ) {
+					MainActivity.this.showError("Root Access Required", error);
+				} else if ( error instanceof RunCommandException ) {
+					MainActivity.this.showError("Error Reading Location Cache", error);
+				} else {
+					showError("Error Reading Location Cache", error);
+				}
+			}
+			else
+			{
+				lastLoad = System.currentTimeMillis();
+				
+				zoomToVisibleMarkers();
+			}
 		}
 		
 		@Override
@@ -128,7 +143,6 @@ public class MainActivity extends MapActivity {
 				
 	}
 	
-	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
@@ -137,7 +151,10 @@ public class MainActivity extends MapActivity {
 		try {
 			ShellCommand cmd = new ShellCommand();
 			if ( !cmd.canSU(true) ) {
+				noRoot = true;
 				throw new NoRootAccessException(String.valueOf(cmd.result.stderr));
+			} else {
+				noRoot = false;
 			}
 		} catch ( NoRootAccessException ex ) {
 			showError("Root Access Required", ex);
@@ -178,6 +195,8 @@ public class MainActivity extends MapActivity {
 	@Override
 	protected void onResume() {
 		super.onResume();
+		
+		if ( noRoot ) return;
 		
 		// only load if it's been at least 5 minutes since the last load
 		if ( task == null && (System.currentTimeMillis() - lastLoad) > (1000 * 60 * 5) ) {
