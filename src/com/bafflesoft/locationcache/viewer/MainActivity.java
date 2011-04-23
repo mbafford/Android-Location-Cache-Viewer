@@ -27,6 +27,8 @@ import com.google.android.maps.MapView;
 import com.google.android.maps.Projection;
 
 public class MainActivity extends MapActivity {
+	private static final int THRESHOLD_HEATMAP = 150;	
+	
 	public class NoRootAccessException extends Exception {	
 		private static final long serialVersionUID = 1L;
 		public NoRootAccessException(String message) {
@@ -120,6 +122,7 @@ public class MainActivity extends MapActivity {
 		}
 				
 	}
+	
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -312,6 +315,16 @@ public class MainActivity extends MapActivity {
 				markersCell.setDrawCircles(true);
 				markersWifi.setDrawCircles(true);
 			}
+			
+			int widthPx  = mapView.getWidth();
+			double distanceAcrossMeters = calculateDistanceAcrossMeters(mapView);
+			double metersPerPixel = distanceAcrossMeters / widthPx;
+			boolean zoomedTooFarOut = metersPerPixel > THRESHOLD_HEATMAP;
+			
+			if ( zoomedTooFarOut ) {
+				Toast.makeText(this, "Heatmap is only visible when zoomed in closer.", Toast.LENGTH_SHORT).show();
+			}
+			
 			mapView.invalidate();
 			item.setChecked(!item.isChecked());
 		}
@@ -346,7 +359,6 @@ public class MainActivity extends MapActivity {
 
 
 	public class Markers extends ItemizedOverlay<LocationInformationOverlayItem> {
-
 		private Context ctx;
 
 		private Drawable drawablePoint;
@@ -397,11 +409,10 @@ public class MainActivity extends MapActivity {
 		@Override
 		public void draw(Canvas canvas, MapView mapView, boolean shadow) {
 			int widthPx  = mapView.getWidth();
-
 			double distanceAcrossMeters = calculateDistanceAcrossMeters(mapView);
 			double metersPerPixel = distanceAcrossMeters / widthPx;
 
-			boolean zoomedTooFarOut = metersPerPixel > 150;
+			boolean zoomedTooFarOut = metersPerPixel > THRESHOLD_HEATMAP;
 			
 			if ( drawCircles && !zoomedTooFarOut ) {		
 				
@@ -438,24 +449,7 @@ public class MainActivity extends MapActivity {
 			} else {
 				super.draw(canvas, mapView, shadow);
 			}
-		}
-		
-		private double calculateDistanceAcrossMeters(MapView mapView)
-		{
-			double lat1 = mapView.getMapCenter().getLatitudeE6();
-			double lat2 = lat1;
-			
-			int R = 6371; // km
-			double dLat = Math.toRadians(mapView.getLatitudeSpan ()/1E6);
-			double dLon = Math.toRadians(mapView.getLongitudeSpan()/1E6); 
-			double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-			        Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) * 
-			        Math.sin(dLon/2) * Math.sin(dLon/2); 
-			double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
-			double d = R * c;	
-			
-			return d * 1000; // meters
-		}
+		}	
 
 		public void setDrawablePoint(Drawable drawablePoint) {
 			this.drawablePoint = drawablePoint;
@@ -482,6 +476,23 @@ public class MainActivity extends MapActivity {
 		}
 	}
 
+	private double calculateDistanceAcrossMeters(MapView mapView)
+	{
+		double lat1 = mapView.getMapCenter().getLatitudeE6();
+		double lat2 = lat1;
+		
+		int R = 6371; // km
+		double dLat = Math.toRadians(mapView.getLatitudeSpan ()/1E6);
+		double dLon = Math.toRadians(mapView.getLongitudeSpan()/1E6); 
+		double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+		        Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) * 
+		        Math.sin(dLon/2) * Math.sin(dLon/2); 
+		double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+		double d = R * c;	
+		
+		return d * 1000; // meters
+	}
+	
 	@Override
 	protected boolean isRouteDisplayed() {
 		return false;
