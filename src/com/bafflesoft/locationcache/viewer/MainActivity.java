@@ -256,12 +256,12 @@ public class MainActivity extends MapActivity {
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
-		MenuItem itemWifi = menu.add(Menu.NONE, MENU_ITEM_WIFI, Menu.NONE, "Show Wifi Locations");
+		MenuItem itemWifi = menu.add(Menu.NONE, MENU_ITEM_WIFI, Menu.NONE, "Hide Wifi Locations");
 		itemWifi.setCheckable(true);
 		itemWifi.setChecked(true);
 		itemWifi.setIcon(R.drawable.icon_wifi);
 		
-		MenuItem itemCell = menu.add(Menu.NONE, MENU_ITEM_CELL, Menu.NONE, "Show Cell Locations");
+		MenuItem itemCell = menu.add(Menu.NONE, MENU_ITEM_CELL, Menu.NONE, "Hide Cell Locations");
 		itemCell.setCheckable(true);
 		itemCell.setChecked(true);
 		itemCell.setIcon(R.drawable.icon_celltower);
@@ -282,16 +282,20 @@ public class MainActivity extends MapActivity {
 
 		if ( item.getItemId() == MENU_ITEM_WIFI ) {
 			if ( item.isChecked() ) {
+				item.setTitle("Show Wifi Locations");
 				mapView.getOverlays().remove(markersWifi);				
 			} else {
+				item.setTitle("Hide Wifi Locations");
 				mapView.getOverlays().add(markersWifi);
 			}
 			mapView.invalidate();
 			item.setChecked(!item.isChecked());
 		} else if ( item.getItemId() == MENU_ITEM_CELL ) {
 			if ( item.isChecked() ) {
+				item.setTitle("Show Cell Locations");
 				mapView.getOverlays().remove(markersCell);
 			} else {
+				item.setTitle("Hide Cell Locations");
 				mapView.getOverlays().add(markersCell);
 			}
 			mapView.invalidate();
