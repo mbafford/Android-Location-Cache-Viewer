@@ -41,9 +41,10 @@ public class MainActivity extends MapActivity {
 		}
 	}
 
-	private static final int MENU_ITEM_CELL = 2;
-	private static final int MENU_ITEM_WIFI = 1;
-	private static final int MENU_ITEM_ZOOM = 3;
+	private static final int MENU_ITEM_CELL    = 2;
+	private static final int MENU_ITEM_WIFI    = 1;
+	private static final int MENU_ITEM_ZOOM    = 3;
+	private static final int MENU_ITEM_HEATMAP = 4;
 
 	private static final String FOLDER_CACHE        = "/data/data/com.google.android.location/files/";
 	private static final String LOCATION_CACHE_CELL = FOLDER_CACHE + "cache.cell";
@@ -253,8 +254,12 @@ public class MainActivity extends MapActivity {
 		itemCell.setChecked(true);
 		itemCell.setIcon(R.drawable.icon_celltower);
 		
-		MenuItem itemZoom = menu.add(Menu.NONE, MENU_ITEM_ZOOM, Menu.NONE, "Zoom to All Points");
+		MenuItem itemZoom = menu.add(Menu.NONE, MENU_ITEM_ZOOM, Menu.NONE, "Zoom to All");
 		itemZoom.setIcon(android.R.drawable.ic_menu_zoom);
+		
+		MenuItem itemHeatmap = menu.add(Menu.NONE, MENU_ITEM_HEATMAP, Menu.NONE, "Disable Heatmap");
+		itemHeatmap.setCheckable(true);
+		itemHeatmap.setChecked(true);
 		
 		return super.onCreateOptionsMenu(menu);
 	}
@@ -281,6 +286,18 @@ public class MainActivity extends MapActivity {
 			item.setChecked(!item.isChecked());
 		} else if ( item.getItemId() == MENU_ITEM_ZOOM ) {
 			zoomToVisibleMarkers();
+		} else if ( item.getItemId() == MENU_ITEM_HEATMAP ) {
+			if ( item.isChecked() ) {
+				item.setTitle("Enable Heatmap");
+				markersCell.setDrawCircles(false);
+				markersWifi.setDrawCircles(false);
+			} else {
+				item.setTitle("Disable Heatmap");
+				markersCell.setDrawCircles(true);
+				markersWifi.setDrawCircles(true);
+			}
+			mapView.invalidate();
+			item.setChecked(!item.isChecked());
 		}
 		return super.onMenuItemSelected(featureId, item);
 	}
