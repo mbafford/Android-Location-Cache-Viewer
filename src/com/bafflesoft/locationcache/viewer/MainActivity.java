@@ -53,6 +53,10 @@ public class MainActivity extends MapActivity {
 	private Markers markersWifi = null;
 	private Markers markersCell = null;
 
+	private long lastLoad = 0;
+	
+	private boolean firstLoad = true;
+	
 	private ProgressDialog dialog = null;
 	private LoadDataTask   task   = null;
 	
@@ -68,6 +72,7 @@ public class MainActivity extends MapActivity {
 				publishProgress("Loading Wireless Access Point Locations");
 				pointsWifi = loadPoints(LOCATION_CACHE_WIFI);
 				publishProgress("Drawing");
+				
 				drawLocations(pointsCell, pointsWifi);
 				
 			} catch ( NoRootAccessException ex ) {
@@ -94,6 +99,8 @@ public class MainActivity extends MapActivity {
 			
 			dialog.dismiss();
 			dialog = null;
+			
+			lastLoad = System.currentTimeMillis();
 			
 			zoomToVisibleMarkers();
 		}
@@ -164,8 +171,11 @@ public class MainActivity extends MapActivity {
 	protected void onResume() {
 		super.onResume();
 		
-		task = new LoadDataTask();
-		task.execute((Void[])null);
+		// only load if it's been at least 5 minutes since the last load
+		if ( (System.currentTimeMillis() - lastLoad) > (1000 * 60 * 5) ) {
+			task = new LoadDataTask();
+			task.execute((Void[])null);
+		}
 	}
 	
 	@Override
@@ -193,9 +203,6 @@ public class MainActivity extends MapActivity {
 		
 		markersWifi.setFillColor(0xff9E7151);
 		markersCell.setFillColor(0xff5680FC);
-
-		mapView.getOverlays().add(markersCell);
-		mapView.getOverlays().add(markersWifi);
 	}
 	
 	private void drawLocations(List<LocationInformation> pointsCell, List<LocationInformation> pointsWifi) throws NoRootAccessException, RunCommandException {
@@ -209,7 +216,7 @@ public class MainActivity extends MapActivity {
 	private void zoomToVisibleMarkers()
 	{
 		MapView mapView = (MapView) findViewById(R.id.mapview);
-
+		
 		int minLat = (int) (  90*1E6);
 		int minLon = (int) ( 180*1E6);
 		int maxLat = (int) ( -90*1E6);
@@ -236,7 +243,12 @@ public class MainActivity extends MapActivity {
 		int lonSpan = (int) ((maxLon-minLon)+3*1E6);
 
 		mapView.getController().zoomToSpan(latSpan, lonSpan);
-		
+
+		if ( firstLoad ) {
+			mapView.getOverlays().add(markersCell);
+			mapView.getOverlays().add(markersWifi);
+			firstLoad = false;
+		}
 
 		mapView.invalidate();
 	}
