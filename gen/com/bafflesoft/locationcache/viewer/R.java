@@ -18,6 +18,8 @@ public final class R {
         public static final int icon_wifi=0x7f020004;
         public static final int little_blue_dot=0x7f020005;
         public static final int little_orange_dot=0x7f020006;
+        public static final int small_dot_blue=0x7f020007;
+        public static final int small_dot_brown=0x7f020008;
     }
     public static final class id {
         public static final int mapview=0x7f050000;

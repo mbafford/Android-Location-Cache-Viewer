@@ -302,19 +302,31 @@ public class MainActivity extends MapActivity {
 				Point ptPx = new Point();
 				LocationInformationOverlayItem item = null;
 	
-				Paint accuracyPaint = new Paint();
-	            accuracyPaint.setAntiAlias(true);
-	            accuracyPaint.setStrokeWidth(1.0f);
-	            accuracyPaint.setColor(getFillColor());
-	            accuracyPaint.setStyle(Style.FILL_AND_STROKE);			
-	            accuracyPaint.setAlpha(20);
-	            
+				Paint translucentBlob = new Paint();
+	            translucentBlob.setAntiAlias(true);
+	            translucentBlob.setStrokeWidth(1.0f);
+	            translucentBlob.setColor(getFillColor());
+	            translucentBlob.setStyle(Style.FILL_AND_STROKE);			
+	            translucentBlob.setAlpha(20);
+
+				Paint spotPoint = new Paint();
+				spotPoint.setAntiAlias(true);
+				spotPoint.setStrokeWidth(1.0f);
+				spotPoint.setColor(getFillColor());
+				spotPoint.setStyle(Style.FILL_AND_STROKE);			
+				spotPoint.setAlpha(20);
+
 				for ( int i = 0; i < mOverlays.size(); i++ ) {
 					item = mOverlays.get(i);
 	
 					projection.toPixels(item.getPoint(), ptPx);
 					
-					canvas.drawCircle((float)ptPx.x, (float)ptPx.y, (float)(item.location.accuracy/metersPerPixel), accuracyPaint);
+					float width = (float)(item.location.accuracy/metersPerPixel);
+					if ( width > 5 ) {
+						canvas.drawCircle((float)ptPx.x, (float)ptPx.y, (float)(item.location.accuracy/metersPerPixel), translucentBlob);
+					} else {
+						canvas.drawCircle((float)ptPx.x, (float)ptPx.y, 5, spotPoint);
+					}
 				}
 			} else {
 				super.draw(canvas, mapView, shadow);
