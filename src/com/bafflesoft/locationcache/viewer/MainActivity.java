@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.graphics.Canvas;
@@ -11,8 +12,7 @@ import android.graphics.Paint;
 import android.graphics.Paint.Style;
 import android.graphics.Point;
 import android.graphics.drawable.Drawable;
-import android.graphics.drawable.ShapeDrawable;
-import android.graphics.drawable.shapes.OvalShape;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
@@ -51,6 +51,67 @@ public class MainActivity extends MapActivity {
 	
 	private Markers markersWifi = null;
 	private Markers markersCell = null;
+
+	private ProgressDialog dialog = null;
+	private LoadDataTask   task   = null;
+	
+	public class LoadDataTask extends AsyncTask<Void, String, Void> {
+		private List<LocationInformation> pointsCell = null;
+		private List<LocationInformation> pointsWifi = null;
+		
+		@Override
+		protected Void doInBackground(Void... params) {
+			try {
+				publishProgress("Loading Cell Tower Locations");
+				pointsCell = loadPoints(LOCATION_CACHE_CELL);
+				publishProgress("Loading Wireless Access Point Locations");
+				pointsWifi = loadPoints(LOCATION_CACHE_WIFI);
+				publishProgress("Drawing");
+				drawLocations(pointsCell, pointsWifi);
+				
+			} catch ( NoRootAccessException ex ) {
+				MainActivity.this.showError("Root Access Required", ex);
+			} catch ( RunCommandException ex ) {
+				MainActivity.this.showError("Error Reading Location Cache", ex);
+			}
+			
+			return null;
+		}
+		
+		@Override
+		protected void onCancelled() {
+			super.onCancelled();
+			
+			if ( dialog != null ) {
+				dialog.dismiss();
+			}
+		}
+		
+		@Override
+		protected void onPostExecute(Void result) {
+			super.onPostExecute(result);
+			
+			dialog.dismiss();
+			dialog = null;
+			
+			zoomToVisibleMarkers();
+		}
+		
+		@Override
+		protected void onPreExecute() {
+			super.onPreExecute();
+			
+			dialog = ProgressDialog.show(MainActivity.this, "Loading Cached Location Data", ""); 
+		}
+		
+		@Override
+		protected void onProgressUpdate(String... values) {
+			super.onProgressUpdate(values);
+			
+			dialog.setMessage(values[0]);
+		}
+				
+	}
 	
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
@@ -62,16 +123,14 @@ public class MainActivity extends MapActivity {
 			if ( !cmd.canSU(true) ) {
 				throw new NoRootAccessException(String.valueOf(cmd.result.stderr));
 			}
-			
-			loadAndDrawLocations();
 		} catch ( NoRootAccessException ex ) {
-			showError(this, "Root Access Required", ex);
-		} catch ( RunCommandException ex ) {
-			showError(this, "Error Reading Location Cache", ex);
+			showError("Root Access Required", ex);
 		}
+		
+		initOverlays();
 	}
 	
-	private void showError(Context context, String title, Throwable ex)
+	private void showError(String title, Throwable ex)
 	{	
 		StringBuilder message = null;
 		if ( ex instanceof NoRootAccessException ) {
@@ -89,50 +148,61 @@ public class MainActivity extends MapActivity {
 		}
 		
 		new AlertDialog.Builder(this).setTitle(title)
-		.setMessage(message)
-		.setIcon(android.R.drawable.ic_dialog_alert)
-		.setOnCancelListener(new DialogInterface.OnCancelListener() {
-			public void onCancel(DialogInterface dialog) { finish(); }
-		})
-		.setPositiveButton("Close Application", new DialogInterface.OnClickListener() {
-			public void onClick(DialogInterface dialog, int which) { finish(); }
-		})
-		.show();			
+			.setMessage(message)
+			.setIcon(android.R.drawable.ic_dialog_alert)
+			.setOnCancelListener(new DialogInterface.OnCancelListener() {
+				public void onCancel(DialogInterface dialog) { finish(); }
+			})
+			.setPositiveButton("Close Application", new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int which) { finish(); }
+			})
+			.show();			
 	}	
 	
 	@Override
 	protected void onResume() {
-		super.onResume();	
+		super.onResume();
+		
+		task = new LoadDataTask();
+		task.execute((Void[])null);
 	}
-
-	private void loadAndDrawLocations() throws NoRootAccessException, RunCommandException {
+	
+	@Override
+	protected void onPause() {
+		if ( task != null ) {
+			task.cancel(true);
+			task = null;
+		}
+		super.onPause();
+	}
+	
+	private void initOverlays()
+	{
 		MapView mapView = (MapView) findViewById(R.id.mapview);
 		mapView.setBuiltInZoomControls(true);
 		
 		Drawable drawWifi = getResources().getDrawable(R.drawable.icon_wifi);
 		Drawable drawCell = getResources().getDrawable(R.drawable.icon_celltower);
 
-		if ( markersWifi != null ) {
-			markersWifi.clear();
-			markersCell.clear();
-		} else {			
-			markersWifi = new Markers(drawWifi, this); 
-			markersCell = new Markers(drawCell, this);
-			
-			markersWifi.setDrawCircles(true);
-			markersCell.setDrawCircles(true);
-			
-			markersWifi.setFillColor(0xff9E7151);
-			markersCell.setFillColor(0xff5680FC);
+		markersWifi = new Markers(drawWifi, this); 
+		markersCell = new Markers(drawCell, this);
+		
+		markersWifi.setDrawCircles(true);
+		markersCell.setDrawCircles(true);
+		
+		markersWifi.setFillColor(0xff9E7151);
+		markersCell.setFillColor(0xff5680FC);
 
-			mapView.getOverlays().add(markersCell);
-			mapView.getOverlays().add(markersWifi);
-		}
+		mapView.getOverlays().add(markersCell);
+		mapView.getOverlays().add(markersWifi);
+	}
+	
+	private void drawLocations(List<LocationInformation> pointsCell, List<LocationInformation> pointsWifi) throws NoRootAccessException, RunCommandException {
+		markersWifi.clear();
+		markersCell.clear();
 		
-		loadPointsAndDraw(mapView, LOCATION_CACHE_CELL, markersCell, drawCell);
-		loadPointsAndDraw(mapView, LOCATION_CACHE_WIFI, markersWifi, drawWifi);			
-		
-		zoomToVisibleMarkers();
+		drawPoints(pointsCell, markersCell);
+		drawPoints(pointsWifi, markersWifi);		
 	}
 	
 	private void zoomToVisibleMarkers()
@@ -216,7 +286,7 @@ public class MainActivity extends MapActivity {
 	}
 	
 
-	private void loadPointsAndDraw(MapView mapView, String fileName, Markers markerSet, Drawable drawable) throws NoRootAccessException, RunCommandException {
+	private List<LocationInformation> loadPoints(String fileName) throws NoRootAccessException, RunCommandException {
 		ShellCommand cmd = new ShellCommand();
 		CommandResult r = cmd.su.runWaitFor("cat " + fileName);
 
@@ -225,18 +295,22 @@ public class MainActivity extends MapActivity {
 		} else {
 			Log.v("LocationCacheViewer", "Success!");
 			
-			List<LocationInformation> locations = LocationCacheParser.parseLocationCacheFile(r.stdout);
-
-			for ( LocationInformation location : locations )
-			{
-				GeoPoint p = location.getGeoPoint();
-				if ( p == null ) continue;			
-				
-				LocationInformationOverlayItem item = new LocationInformationOverlayItem(location);
-				markerSet.addOverlay(item);
-			}
+			return LocationCacheParser.parseLocationCacheFile(r.stdout);
 		}
 	}	
+	
+	private void drawPoints(List<LocationInformation> locations, Markers markerSet)
+	{
+		for ( LocationInformation location : locations )
+		{
+			GeoPoint p = location.getGeoPoint();
+			if ( p == null ) continue;			
+			
+			LocationInformationOverlayItem item = new LocationInformationOverlayItem(location);
+			markerSet.addOverlay(item);
+		}		
+	}
+
 
 	public class Markers extends ItemizedOverlay<LocationInformationOverlayItem> {
 
