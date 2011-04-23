@@ -39,11 +39,12 @@ public class MainActivity extends MapActivity {
 
 	private static final int MENU_ITEM_CELL = 2;
 	private static final int MENU_ITEM_WIFI = 1;
-	
+	private static final int MENU_ITEM_ZOOM = 3;
+
 	private static final String FOLDER_CACHE        = "/data/data/com.google.android.location/files/";
 	private static final String LOCATION_CACHE_CELL = FOLDER_CACHE + "cache.cell";
 	private static final String LOCATION_CACHE_WIFI = FOLDER_CACHE + "cache.wifi";
-
+	
 	private Markers markersWifi = null;
 	private Markers markersCell = null;
 	
@@ -120,16 +121,45 @@ public class MainActivity extends MapActivity {
 		
 		loadPointsAndDraw(mapView, LOCATION_CACHE_CELL, markersCell, drawCell);
 		loadPointsAndDraw(mapView, LOCATION_CACHE_WIFI, markersWifi, drawWifi);			
+		
+		zoomToVisibleMarkers();
+	}
+	
+	private void zoomToVisibleMarkers()
+	{
+		MapView mapView = (MapView) findViewById(R.id.mapview);
 
-		int latSpan = Math.max(markersWifi.getLatSpanE6(), markersCell.getLatSpanE6()) + 5;
-		int lonSpan = Math.max(markersWifi.getLonSpanE6(), markersCell.getLonSpanE6()) + 5;
-		mapView.getController().zoomToSpan(latSpan, lonSpan);			
-		mapView.getController().animateTo(markersWifi.getCenter());
+		int minLat = (int) (  90*1E6);
+		int minLon = (int) ( 180*1E6);
+		int maxLat = (int) ( -90*1E6);
+		int maxLon = (int) (-180*1E6);
+		for ( int i = 0; i < markersWifi.size(); i++ ) {
+			minLat = Math.min(markersWifi.getItem(i).getPoint().getLatitudeE6 (), minLat);
+			minLon = Math.min(markersWifi.getItem(i).getPoint().getLongitudeE6(), minLon);
+			maxLat = Math.max(markersWifi.getItem(i).getPoint().getLatitudeE6 (), maxLat);
+			maxLon = Math.max(markersWifi.getItem(i).getPoint().getLongitudeE6(), maxLon);
+		}
+		for ( int i = 0; i < markersCell.size(); i++ ) {
+			minLat = Math.min(markersCell.getItem(i).getPoint().getLatitudeE6 (), minLat);
+			minLon = Math.min(markersCell.getItem(i).getPoint().getLongitudeE6(), minLon);
+			maxLat = Math.max(markersCell.getItem(i).getPoint().getLatitudeE6 (), maxLat);
+			maxLon = Math.max(markersCell.getItem(i).getPoint().getLongitudeE6(), maxLon);
+		}		
 		
-		// TODO: zoom to the span that covers both
+		int centerLat = minLat + ((maxLat-minLat)/2);
+		int centerLon = minLon + ((maxLon-minLon)/2);
+
+		mapView.getController().animateTo(new GeoPoint(centerLat, centerLon));
+	
+		int latSpan = (int) ((maxLat-minLat)+3*1E6);
+		int lonSpan = (int) ((maxLon-minLon)+3*1E6);
+
+		mapView.getController().zoomToSpan(latSpan, lonSpan);
 		
+
 		mapView.invalidate();
 	}
+
 
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
@@ -142,6 +172,9 @@ public class MainActivity extends MapActivity {
 		itemCell.setCheckable(true);
 		itemCell.setChecked(true);
 		itemCell.setIcon(R.drawable.icon_celltower);
+		
+		MenuItem itemZoom = menu.add(Menu.NONE, MENU_ITEM_ZOOM, Menu.NONE, "Zoom to All Points");
+		itemZoom.setIcon(android.R.drawable.ic_menu_zoom);
 		
 		return super.onCreateOptionsMenu(menu);
 	}
@@ -166,6 +199,8 @@ public class MainActivity extends MapActivity {
 			}
 			mapView.invalidate();
 			item.setChecked(!item.isChecked());
+		} else if ( item.getItemId() == MENU_ITEM_ZOOM ) {
+			zoomToVisibleMarkers();
 		}
 		return super.onMenuItemSelected(featureId, item);
 	}
