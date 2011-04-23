@@ -6,6 +6,10 @@ import java.util.List;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.Paint.Style;
+import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
@@ -20,7 +24,7 @@ import com.google.android.maps.GeoPoint;
 import com.google.android.maps.ItemizedOverlay;
 import com.google.android.maps.MapActivity;
 import com.google.android.maps.MapView;
-import com.google.android.maps.OverlayItem;
+import com.google.android.maps.Projection;
 
 public class MainActivity extends MapActivity {
 	public class NoRootAccessException extends Exception {	
@@ -113,7 +117,13 @@ public class MainActivity extends MapActivity {
 			markersCell.clear();
 		} else {			
 			markersWifi = new Markers(drawWifi, this); 
-			markersCell = new Markers(drawCell, this); 
+			markersCell = new Markers(drawCell, this);
+			
+			markersWifi.setDrawCircles(true);
+			markersCell.setDrawCircles(true);
+			
+			markersWifi.setFillColor(0xff9E7151);
+			markersWifi.setFillColor(0xff5680FC);
 
 			mapView.getOverlays().add(markersCell);
 			mapView.getOverlays().add(markersWifi);
@@ -122,7 +132,8 @@ public class MainActivity extends MapActivity {
 		loadPointsAndDraw(mapView, LOCATION_CACHE_CELL, markersCell, drawCell);
 		loadPointsAndDraw(mapView, LOCATION_CACHE_WIFI, markersWifi, drawWifi);			
 		
-		zoomToVisibleMarkers();
+		//zoomToVisibleMarkers();
+		mapView.getController().animateTo(new GeoPoint((int)(38.948296*1E6),(int)(-77.409089*1E6)));
 	}
 	
 	private void zoomToVisibleMarkers()
@@ -216,30 +227,27 @@ public class MainActivity extends MapActivity {
 			Log.v("LocationCacheViewer", "Success!");
 			
 			List<LocationInformation> locations = LocationCacheParser.parseLocationCacheFile(r.stdout);
-			
+
 			for ( LocationInformation location : locations )
 			{
 				GeoPoint p = location.getGeoPoint();
 				if ( p == null ) continue;			
 				
-				OverlayItem item = new OverlayItem(p, location.key, location.getTimeString());
-//				ShapeDrawable circle = new ShapeDrawable( new  OvalShape() );
-//		        circle.getPaint().setColor(0xff74AC23);
-//		        circle.setAlpha(128);
-//		        circle.setBounds(0, 0, 35, 35);
-				item.setMarker(drawable);
+				LocationInformationOverlayItem item = new LocationInformationOverlayItem(location);
 				markerSet.addOverlay(item);
 			}
 		}
-	}
+	}	
 
-	
-
-	public class Markers extends ItemizedOverlay<OverlayItem> {
+	public class Markers extends ItemizedOverlay<LocationInformationOverlayItem> {
 
 		private Context ctx;
 
-		private ArrayList<OverlayItem> mOverlays = new ArrayList<OverlayItem>();
+		private Drawable drawablePoint;
+		private int      fillColor;
+		private  boolean  drawCircles;
+		
+		private ArrayList<LocationInformationOverlayItem> mOverlays = new ArrayList<LocationInformationOverlayItem>();
 
 		public Markers(Drawable defaultMarker, Context cont) {
 			super(boundCenterBottom(defaultMarker));
@@ -247,7 +255,7 @@ public class MainActivity extends MapActivity {
 		}
 
 		@Override
-		protected OverlayItem createItem(int i) {
+		protected LocationInformationOverlayItem createItem(int i) {
 			return mOverlays.get(i);
 		}
 
@@ -268,17 +276,91 @@ public class MainActivity extends MapActivity {
 			return mOverlays.size();
 		}
 
-		public void addOverlay(OverlayItem item) {
+		public void addOverlay(LocationInformationOverlayItem item) {
 			mOverlays.add(item);
 			setLastFocusedIndex(-1);
 			populate();
-
 		}
-
+		
 		public void clear() {
 			mOverlays.clear();
 			setLastFocusedIndex(-1);
 			populate();
+		}
+		
+		@Override
+		public void draw(Canvas canvas, MapView mapView, boolean shadow) {
+			int widthPx  = mapView.getWidth();
+
+			double distanceAcrossMeters = calculateDistanceAcrossMeters(mapView);
+			double metersPerPixel = distanceAcrossMeters / widthPx;
+
+			boolean zoomedTooFarOut = metersPerPixel > 300;
+			
+			if ( drawCircles && !zoomedTooFarOut ) {		
+				
+	            Projection projection = mapView.getProjection();
+				Point ptPx = new Point();
+				LocationInformationOverlayItem item = null;
+	
+				Paint accuracyPaint = new Paint();
+	            accuracyPaint.setAntiAlias(true);
+	            accuracyPaint.setStrokeWidth(1.0f);
+	            accuracyPaint.setColor(getFillColor());
+	            accuracyPaint.setStyle(Style.FILL_AND_STROKE);			
+	            accuracyPaint.setAlpha(20);
+	            
+				for ( int i = 0; i < mOverlays.size(); i++ ) {
+					item = mOverlays.get(i);
+	
+					projection.toPixels(item.getPoint(), ptPx);
+					
+					canvas.drawCircle((float)ptPx.x, (float)ptPx.y, (float)(item.location.accuracy/metersPerPixel), accuracyPaint);
+				}
+			} else {
+				super.draw(canvas, mapView, shadow);
+			}
+		}
+		
+		private double calculateDistanceAcrossMeters(MapView mapView)
+		{
+			double lat1 = mapView.getMapCenter().getLatitudeE6();
+			double lat2 = lat1;
+			
+			int R = 6371; // km
+			double dLat = Math.toRadians(mapView.getLatitudeSpan ()/1E6);
+			double dLon = Math.toRadians(mapView.getLongitudeSpan()/1E6); 
+			double a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+			        Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2)) * 
+			        Math.sin(dLon/2) * Math.sin(dLon/2); 
+			double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+			double d = R * c;	
+			
+			return d * 1000; // meters
+		}
+
+		public void setDrawablePoint(Drawable drawablePoint) {
+			this.drawablePoint = drawablePoint;
+		}
+
+		public Drawable getDrawablePoint() {
+			return drawablePoint;
+		}
+
+		public void setFillColor(int fillColor) {
+			this.fillColor = fillColor;
+		}
+
+		public int getFillColor() {
+			return fillColor;
+		}
+
+		public void setDrawCircles(boolean drawCircles) {
+			this.drawCircles = drawCircles;
+		}
+
+		public boolean isDrawCircles() {
+			return drawCircles;
 		}
 	}
 
