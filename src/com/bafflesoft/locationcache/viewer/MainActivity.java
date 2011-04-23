@@ -92,7 +92,10 @@ public class MainActivity extends MapActivity {
 			
 			if ( dialog != null ) {
 				dialog.dismiss();
+				dialog = null;
 			}
+
+			task = null;
 		}
 		
 		@Override
@@ -101,6 +104,8 @@ public class MainActivity extends MapActivity {
 			
 			dialog.dismiss();
 			dialog = null;
+			
+			task = null;
 			
 			lastLoad = System.currentTimeMillis();
 			
@@ -175,7 +180,7 @@ public class MainActivity extends MapActivity {
 		super.onResume();
 		
 		// only load if it's been at least 5 minutes since the last load
-		if ( (System.currentTimeMillis() - lastLoad) > (1000 * 60 * 5) ) {
+		if ( task == null && (System.currentTimeMillis() - lastLoad) > (1000 * 60 * 5) ) {
 			task = new LoadDataTask();
 			task.execute((Void[])null);
 		}
@@ -183,10 +188,10 @@ public class MainActivity extends MapActivity {
 	
 	@Override
 	protected void onPause() {
-		if ( task != null ) {
-			task.cancel(true);
-			task = null;
-		}
+//		if ( task != null ) {
+//			task.cancel(true);
+//			task = null;
+//		}
 		super.onPause();
 	}
 	
