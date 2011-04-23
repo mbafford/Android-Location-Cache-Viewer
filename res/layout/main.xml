@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.maps.MapView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/mapview"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:clickable="true"
+    android:apiKey="0xvPRibgTaSB3fZfRRPq0g7tVgTceOdToKSgaVg"
+/> <!--  58:D7:2F:4D:63:82:D0:6E:56:F7:A7:83:84:25:8E:4B == 0xvPRibgTaSB5vGgLyIvKuqzjFN1DG9zBEXMCiw -->
+<!--  debug == 0xvPRibgTaSB3fZfRRPq0g7tVgTceOdToKSgaVg -->
