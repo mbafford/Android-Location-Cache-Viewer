@@ -5,6 +5,6 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:clickable="true"
-    android:apiKey="0xvPRibgTaSB3fZfRRPq0g7tVgTceOdToKSgaVg"
+    android:apiKey="0xvPRibgTaSB5vGgLyIvKuqzjFN1DG9zBEXMCiw"
 /> <!--  58:D7:2F:4D:63:82:D0:6E:56:F7:A7:83:84:25:8E:4B == 0xvPRibgTaSB5vGgLyIvKuqzjFN1DG9zBEXMCiw -->
 <!--  debug == 0xvPRibgTaSB3fZfRRPq0g7tVgTceOdToKSgaVg -->
