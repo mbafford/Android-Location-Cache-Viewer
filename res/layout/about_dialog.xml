@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="fill_parent" android:layout_height="fill_parent" android:orientation="vertical" android:padding="5dip">
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Android Location Cache Viewer" android:textSize="20sp" android:textStyle="bold" android:gravity="center_horizontal"></TextView>
+
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="A quick application that came about because of the controversy around the iOS location tracking." android:layout_marginTop="10dip"></TextView>
+
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Inspiration From" android:textSize="18sp" android:layout_marginTop="20dip" android:textStyle="bold" android:gravity="center_horizontal"/>
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Magnus Eriksson (packetlss)" android:gravity="center_horizontal"/>
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="https://github.com/packetlss/android-locdump" android:gravity="center_horizontal" android:linksClickable="true"  android:autoLink="web"></TextView>
+
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Publicly Licensed Resources Used" android:textStyle="bold" android:layout_marginTop="20dip" android:gravity="center" android:textSize="16sp"></TextView>
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="(all Creative Commons BY(-SA) 3.0)" android:gravity="center"  android:textStyle="italic"></TextView>
+
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Application Icon" android:gravity="center" />
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="http://www.snap2objects.com/" android:linksClickable="true"  android:autoLink="web" android:gravity="center" />
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Google Maps Icons Project" android:gravity="center" />
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="http://code.google.com/p/google-maps-icons/" android:linksClickable="true"  android:autoLink="web" android:gravity="center" />
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Nico Mollet - wifi.png" android:gravity="center" ></TextView>
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Robin Gawlik - mobilephonetower.png" android:gravity="center" ></TextView>
+
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Thank You!" android:textSize="22sp" android:textStyle="bold" android:gravity="center_horizontal"  android:layout_marginTop="20dip"></TextView>
+	<TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="android.market@bafford.us" android:layout_marginTop="10dip" android:gravity="center_horizontal" android:linksClickable="true" android:autoLink="email" ></TextView>
+
+</LinearLayout>

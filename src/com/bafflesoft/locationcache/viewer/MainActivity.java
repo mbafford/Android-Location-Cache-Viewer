@@ -55,6 +55,7 @@ public class MainActivity extends MapActivity {
 	private static final int MENU_ITEM_WIFI    = 1;
 	private static final int MENU_ITEM_ZOOM    = 3;
 	private static final int MENU_ITEM_HEATMAP = 4;
+	private static final int MENU_ITEM_ABOUT   = 6;
 	private static final int MENU_ITEM_REPLAY  = 5;
 
 	private static final String FOLDER_CACHE        = "/data/data/com.google.android.location/files/";
@@ -424,6 +425,8 @@ public class MainActivity extends MapActivity {
 		itemHeatmap.setCheckable(true);
 		itemHeatmap.setChecked(true);
 		
+		MenuItem itemAbout = menu.add(Menu.NONE, MENU_ITEM_ABOUT, Menu.NONE, "About");
+		
 		if ( Util.isDebugBuild(this) ) {
 			MenuItem itemReplay = menu.add(Menu.NONE, MENU_ITEM_REPLAY, Menu.NONE, "Replay Tracks");
 		}
@@ -481,6 +484,9 @@ public class MainActivity extends MapActivity {
 			item.setChecked(!item.isChecked());
 		} else if ( item.getItemId() == MENU_ITEM_REPLAY ) {
 			startReplayOfTracks();			
+		} else if ( item.getItemId() == MENU_ITEM_ABOUT ) {
+			AboutDialog dialog = new AboutDialog(this);
+			dialog.show();
 		}
 		return super.onMenuItemSelected(featureId, item);
 	}
