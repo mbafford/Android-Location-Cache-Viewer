@@ -1,9 +1,14 @@
 package com.bafflesoft.locationcache.viewer;
 
+import java.io.FileNotFoundException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
+import java.util.Locale;
 
 import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -14,9 +19,12 @@ import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.bafflesoft.locationcache.viewer.ShellCommand.CommandResult;
@@ -47,6 +55,7 @@ public class MainActivity extends MapActivity {
 	private static final int MENU_ITEM_WIFI    = 1;
 	private static final int MENU_ITEM_ZOOM    = 3;
 	private static final int MENU_ITEM_HEATMAP = 4;
+	private static final int MENU_ITEM_REPLAY  = 5;
 
 	private static final String FOLDER_CACHE        = "/data/data/com.google.android.location/files/";
 	private static final String LOCATION_CACHE_CELL = FOLDER_CACHE + "cache.cell";
@@ -121,7 +130,41 @@ public class MainActivity extends MapActivity {
 			}
 			else
 			{
+				if ( pointsCell == null || pointsWifi == null ) {
+					StringBuilder message = new StringBuilder();
+					message.append("Location data cache found.\n\n");
+					message.append("Unable to load location data for:\n\n");
+					if ( pointsCell == null ) {
+						message.append("     Cell Locations\n\n");
+					}
+					if ( pointsWifi == null ) {
+						message.append("     Wifi Locations\n\n");
+					}
+					message.append("This data is only stored if you have enabled the 'Wireless Networks' options under Settings -> Locations\n\nOtherwise, Android does not cache this data.");
+					
+					Builder builder = new AlertDialog.Builder(MainActivity.this).setTitle("Location Data Does Not Exist")
+					.setMessage(message)
+					.setIcon(android.R.drawable.ic_dialog_alert)
+					.setOnCancelListener(new DialogInterface.OnCancelListener() {
+						public void onCancel(DialogInterface dialog) { finish(); }
+					});
+					
+					if ( pointsCell == null && pointsWifi == null ) {
+						builder.setPositiveButton("Close Application", new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface dialog, int which) { finish(); }
+						});
+					} else {
+						builder.setPositiveButton("Show What's Available", new DialogInterface.OnClickListener() {
+							public void onClick(DialogInterface dialog, int which) { }
+						});
+					}
+					
+					builder.show();							
+				}
+				
 				lastLoad = System.currentTimeMillis();
+				
+				updateLabels();
 				
 				zoomToVisibleMarkers();
 			}
@@ -146,8 +189,18 @@ public class MainActivity extends MapActivity {
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
-		setContentView(R.layout.main);			
-	
+		setContentView(R.layout.main);
+		
+		if ( Util.isDebugBuild(this) ) {
+//			MapView mapView = (MapView)findViewById(R.id.mapview);
+//			ViewGroup group = (ViewGroup) mapView.getParent();
+//			group.removeView(mapView);
+//			MapView newMap = new MapView(this, "0xvPRibgTaSB3fZfRRPq0g7tVgTceOdToKSgaVg");
+//			group.addView(newMap);
+		} else {
+		
+		}
+		
 		try {
 			ShellCommand cmd = new ShellCommand();
 			if ( !cmd.canSU(true) ) {
@@ -161,6 +214,15 @@ public class MainActivity extends MapActivity {
 		}
 		
 		initOverlays();
+		
+//		((SlidingDrawer)findViewById(R.id.slider)).setOnDrawerOpenListener(new SlidingDrawer.OnDrawerOpenListener() {
+//			@Override
+//			public void onDrawerOpened() {
+//				LayoutParams params = findViewById(R.id.slider).getLayoutParams();
+//				params.height = findViewById(R.id.content).getMeasuredHeight() + findViewById(R.id.handle).getHeight();
+//				findViewById(R.id.slider).setLayoutParams(params);
+//			}
+//		});
 	}
 	
 	private void showError(String title, Throwable ex)
@@ -202,7 +264,7 @@ public class MainActivity extends MapActivity {
 		if ( task == null && (System.currentTimeMillis() - lastLoad) > (1000 * 60 * 5) ) {
 			task = new LoadDataTask();
 			task.execute((Void[])null);
-		}
+		}	
 	}
 	
 	@Override
@@ -232,12 +294,74 @@ public class MainActivity extends MapActivity {
 		markersCell.setFillColor(0xff5680FC);
 	}
 	
+	private void updateLabels()
+	{
+		int cellCount = 0;
+		int wifiCount = 0;
+		CharSequence wifiDateSpan = "No Wifi Data Loaded";
+		CharSequence cellDateSpan = "No Cell Data Loaded";
+
+		if ( markersCell != null && markersCell.size() > 0 ) {
+			cellCount = markersCell.size();
+			
+			long minDateCell = Long.MAX_VALUE;
+			long maxDateCell = Long.MIN_VALUE;
+			for ( int i = 0; i < markersCell.size(); i++ ) {
+				long timestamp = markersCell.getItem(i).location.timestamp;
+				minDateCell = Math.min(minDateCell, timestamp);
+				maxDateCell = Math.max(maxDateCell, timestamp);
+			}
+
+			cellDateSpan = formatDateSpan(minDateCell, maxDateCell);
+		}
+		
+		if ( markersWifi != null && markersCell.size() > 0 ) {
+			wifiCount = markersWifi.size();			
+		
+			long minDateWifi = Long.MAX_VALUE;
+			long maxDateWifi = Long.MIN_VALUE;
+			for ( int i = 0; i < markersWifi.size(); i++ ) {
+				long timestamp = markersWifi.getItem(i).location.timestamp;
+				minDateWifi = Math.min(minDateWifi, timestamp);
+				maxDateWifi = Math.max(maxDateWifi, timestamp);
+			}
+
+			wifiDateSpan = formatDateSpan(minDateWifi, maxDateWifi);
+		}
+		
+		((TextView)findViewById(R.id.wifiTowerCount)).setText(String.valueOf(wifiCount));
+		((TextView)findViewById(R.id.cellTowerCount)).setText(String.valueOf(cellCount));
+		((TextView)findViewById(R.id.wifiTowerDates)).setText(wifiDateSpan);
+		((TextView)findViewById(R.id.cellTowerDates)).setText(cellDateSpan);
+	}
+	
+	private CharSequence formatDateSpan(long minTS, long maxTS)
+	{
+		Calendar calMin = Calendar.getInstance(Locale.getDefault());
+		calMin.setTimeInMillis(minTS);
+
+		Calendar calMax = Calendar.getInstance(Locale.getDefault());
+		calMax.setTimeInMillis(maxTS);
+		
+		SimpleDateFormat fmt = new SimpleDateFormat("yyy.MM.dd h:mm a");
+		StringBuilder b = new StringBuilder();
+		b.append(fmt.format(calMin.getTime()));
+		b.append(" - ");
+		b.append(fmt.format(calMax.getTime()));
+		
+		return b;
+	}
+	
 	private void drawLocations(List<LocationInformation> pointsCell, List<LocationInformation> pointsWifi) throws NoRootAccessException, RunCommandException {
 		markersWifi.clear();
 		markersCell.clear();
 		
-		drawPoints(pointsCell, markersCell);
-		drawPoints(pointsWifi, markersWifi);		
+		if ( pointsCell != null ) {
+			drawPoints(pointsCell, markersCell);
+		} 
+		if ( pointsWifi != null ) {
+			drawPoints(pointsWifi, markersWifi);
+		}
 	}
 	
 	private void zoomToVisibleMarkers()
@@ -300,6 +424,10 @@ public class MainActivity extends MapActivity {
 		itemHeatmap.setCheckable(true);
 		itemHeatmap.setChecked(true);
 		
+		if ( Util.isDebugBuild(this) ) {
+			MenuItem itemReplay = menu.add(Menu.NONE, MENU_ITEM_REPLAY, Menu.NONE, "Replay Tracks");
+		}
+		
 		return super.onCreateOptionsMenu(menu);
 	}
 	
@@ -351,17 +479,47 @@ public class MainActivity extends MapActivity {
 			
 			mapView.invalidate();
 			item.setChecked(!item.isChecked());
+		} else if ( item.getItemId() == MENU_ITEM_REPLAY ) {
+			startReplayOfTracks();			
 		}
 		return super.onMenuItemSelected(featureId, item);
 	}
+
+	private int trackPosition = -1;
 	
+    private final Handler mMsgHandler = new Handler() {
+    	public void handleMessage(android.os.Message msg) {
+    		if ( trackPosition < 0 ) return;
+    		if ( trackPosition >= markersCell.size() ) {
+    			trackPosition = -1;
+    			return;
+    		}
+    		
+			LocationInformationOverlayItem item = markersCell.getItem(trackPosition);
+			MapView mapView = (MapView) findViewById(R.id.mapview);
+			mapView.getController().animateTo(item.getPoint());
+
+			trackPosition++;
+			mMsgHandler.sendMessageDelayed(new Message(), 1000);
+    	};
+    };
+	
+	private void startReplayOfTracks()
+	{
+		trackPosition = 0;
+		mMsgHandler.sendMessageDelayed(new Message(), 100);
+	}
 
 	private List<LocationInformation> loadPoints(String fileName) throws NoRootAccessException, RunCommandException {
 		ShellCommand cmd = new ShellCommand();
 		CommandResult r = cmd.su.runWaitFor("cat " + fileName);
 
 		if (!r.success()) {
-			throw new RunCommandException(r.stderr);
+			if ( r.stderr.contains("No such file") || r.exit_value == 1 ) {
+				return null;
+			} else {
+				throw new RunCommandException(r.stderr);
+			}
 		} else {
 			Log.v("LocationCacheViewer", "Success!");
 			
