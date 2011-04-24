@@ -11,6 +11,7 @@ public class LocationInformation implements Comparable<LocationInformation> {
 	public int    latIE6;
 	public int    lonIE6;
 	public long   timestamp;
+	public String type;
 	
 	public GeoPoint getGeoPoint()
 	{

@@ -6,7 +6,7 @@ import java.util.List;
 import android.util.Log;
 
 public class LocationCacheParser {
-	public static List<LocationInformation> parseLocationCacheFile(byte[] data)
+	public static List<LocationInformation> parseLocationCacheFile(byte[] data, String type)
 	{
 		// unpack ">hh" - version, count
 		// big-endian short (2), short(2)
@@ -41,6 +41,7 @@ public class LocationCacheParser {
 			location.latIE6     = (int)(DataUnpacker.decodeFloat(data, i+10) * 1E6);
 			location.lonIE6     = (int)(DataUnpacker.decodeFloat(data, i+18) * 1E6);
 			location.timestamp  = DataUnpacker.decodeLong(data, i+26);
+			location.type       = type;
 			
 			locations.add(location);
 		}						

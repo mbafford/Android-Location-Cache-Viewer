@@ -1,9 +1,12 @@
 package com.bafflesoft.locationcache.viewer;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.HashSet;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
@@ -22,6 +25,7 @@ import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
@@ -62,6 +66,7 @@ public class MainActivity extends MapActivity {
 	private static final int MENU_ITEM_HEATMAP = 4;
 	private static final int MENU_ITEM_ABOUT   = 6;
 	private static final int MENU_ITEM_REPLAY  = 5;
+	private static final int MENU_ITEM_EXPORT  = 7;
 
 	private static final String FOLDER_CACHE        = "/data/data/com.google.android.location/files/";
 	private static final String LOCATION_CACHE_CELL = FOLDER_CACHE + "cache.cell";
@@ -90,9 +95,9 @@ public class MainActivity extends MapActivity {
 		protected Boolean doInBackground(Void... params) {
 			try {
 				publishProgress("Loading Cell Tower Locations");
-				pointsCell = loadPoints(LOCATION_CACHE_CELL);
+				pointsCell = loadPoints(LOCATION_CACHE_CELL, "Cellphone Tower");
 				publishProgress("Loading Wireless Access Point Locations");
-				pointsWifi = loadPoints(LOCATION_CACHE_WIFI);
+				pointsWifi = loadPoints(LOCATION_CACHE_WIFI, "Wireless Access Point");
 				publishProgress("Drawing");
 				
 				drawLocations(pointsCell, pointsWifi);
@@ -185,7 +190,8 @@ public class MainActivity extends MapActivity {
 		protected void onPreExecute() {
 			super.onPreExecute();
 			
-			dialog = ProgressDialog.show(MainActivity.this, "Loading Cached Location Data", ""); 
+			dialog = ProgressDialog.show(MainActivity.this, "Loading Cached Location Data", "");
+			dialog.setIcon(0);
 		}
 		
 		@Override
@@ -430,9 +436,14 @@ public class MainActivity extends MapActivity {
 		itemHeatmap.setChecked(true);
 		
 		MenuItem itemAbout = menu.add(Menu.NONE, MENU_ITEM_ABOUT, Menu.NONE, "About");
+		itemAbout.setIcon(android.R.drawable.ic_menu_info_details);
 		
 		MenuItem itemReplay = menu.add(Menu.NONE, MENU_ITEM_REPLAY, Menu.NONE, "Replay Tracks");
-		
+		itemReplay.setIcon(android.R.drawable.ic_media_play);
+
+		MenuItem itemExport = menu.add(Menu.NONE, MENU_ITEM_EXPORT, Menu.NONE, "Export to GPX");
+		itemExport.setIcon(android.R.drawable.ic_menu_save);
+
 		return super.onCreateOptionsMenu(menu);
 	}
 	
@@ -489,6 +500,8 @@ public class MainActivity extends MapActivity {
 		} else if ( item.getItemId() == MENU_ITEM_ABOUT ) {
 			AboutDialog dialog = new AboutDialog(this);
 			dialog.show();
+		} else if ( item.getItemId() == MENU_ITEM_EXPORT ) {
+			exportData();
 		}
 		return super.onMenuItemSelected(featureId, item);
 	}
@@ -521,7 +534,7 @@ public class MainActivity extends MapActivity {
 				mapView.getController().setZoom(14);
 				
 				((TextView)findViewById(R.id.descReplay1)).setText(formatDate(item.timestamp));				
-				((TextView)findViewById(R.id.descReplay2)).setText(item.key + " - " + item.accuracy + " meters");				
+				((TextView)findViewById(R.id.descReplay2)).setText(item.type + " - " + item.key + " - " + item.accuracy + " meters");				
 			} else {
 				mMsgHandler.sendMessageDelayed(new Message(), 1000);				
 			}
@@ -541,7 +554,7 @@ public class MainActivity extends MapActivity {
 		mMsgHandler.sendMessageDelayed(new Message(), 0);
 	}
 
-	private List<LocationInformation> loadPoints(String fileName) throws NoRootAccessException, RunCommandException {
+	private List<LocationInformation> loadPoints(String fileName, String type) throws NoRootAccessException, RunCommandException {
 		ShellCommand cmd = new ShellCommand();
 		CommandResult r = cmd.su.runWaitFor("cat " + fileName);
 
@@ -554,7 +567,7 @@ public class MainActivity extends MapActivity {
 		} else {
 			Log.v("LocationCacheViewer", "Success!");
 			
-			return LocationCacheParser.parseLocationCacheFile(r.stdout);
+			return LocationCacheParser.parseLocationCacheFile(r.stdout, type);
 		}
 	}	
 	
@@ -709,5 +722,106 @@ public class MainActivity extends MapActivity {
 	@Override
 	protected boolean isRouteDisplayed() {
 		return false;
+	}
+	
+	private void exportData()
+	{
+		try {
+			if ( dialog != null ) {
+				new AlertDialog.Builder(this).setTitle("Loading Data")
+				.setMessage("Loading data... Please wait before exporting.")
+				.setIcon(android.R.drawable.ic_dialog_info)
+				.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {}
+				})
+				.show();
+				return;
+			}
+			
+			String externalState = Environment.getExternalStorageState();
+			if ( !Environment.MEDIA_MOUNTED.equals(externalState) ) {
+				new AlertDialog.Builder(this).setTitle("Missing External Storage?")
+				.setMessage("It looks like your SD card (or other storage) isn't available.\n\nCannot export data.")
+				.setIcon(android.R.drawable.ic_dialog_alert)
+				.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {}
+				})
+				.show();
+				
+				return;
+			}
+			
+			SimpleDateFormat fmt = new SimpleDateFormat("yyy.MM.dd_hhmmss");
+			Calendar cal = Calendar.getInstance(Locale.getDefault());
+			String filename = fmt.format(cal.getTime()) + "__Location_Cache.gpx";
+			
+			File external = Environment.getExternalStorageDirectory();
+			File dir      = new File(external, "Android/data/" + getPackageName() + "/files/");
+			File file     = new File(dir, filename);
+			
+			Log.d("LocationCacheViewer", "Can write: " + file.getPath() + " - " + file.canWrite());
+			
+			if ( !dir.exists() && !dir.mkdirs() ) {
+				new AlertDialog.Builder(this).setTitle("Unable to Export")
+				.setMessage("Unable to export file to: " + dir.getPath() + "\n\nCould not create that directory.")
+				.setIcon(android.R.drawable.ic_dialog_info)
+				.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {}
+				})
+				.show();
+				return;
+			}
+			
+			if ( !file.exists() && !file.createNewFile() ) {
+				new AlertDialog.Builder(this).setTitle("Unable to Export")
+				.setMessage("Unable to export file to: " + file.getPath() + "\n\nCould not create that file.")
+				.setIcon(android.R.drawable.ic_dialog_info)
+				.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+					public void onClick(DialogInterface dialog, int which) {}
+				})
+				.show();
+				return;
+			}
+			
+			BufferedWriter out = new BufferedWriter(new FileWriter(file));
+
+			out.write("<gpx xmlns=\"http://www.topografix.com/GPX/1/1\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" version=\"1.1\" xsi:schemaLocation=\"http://www.topografix.com/GPX/1/1 http://www.topografix.com/GPX/1/1/gpx.xsd\" creator=\"Android Location Cache Viewer\">\n");
+			out.write("<metadata>\n");
+			out.write("<name>Android Location Cache</name>\n");
+			out.write("<desc>Exported on " + fmt.format(cal.getTime()) + " Total Points: " + pointsAll.size() + "</desc></metadata>\n");
+			//out.write("<trk>");
+			//out.write("<trkseg>\n");
+			final SimpleDateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");			
+			final String format = "<wpt lat=\"%f\" lon=\"%f\"><time>%sZ</time><name>%s</name><desc>type: %s, when: %s, accuracy: %d, confidence: %d</desc></wpt>\n";
+			for ( LocationInformation loc : pointsAll ) {
+				if ( loc.accuracy >= 0 && loc.confidence >= 0 ) {
+					out.write(String.format(format, loc.latIE6/1E6, loc.lonIE6/1E6, iso8601Format.format(new Date(loc.timestamp)), loc.key, loc.type, loc.getTimeString(), loc.accuracy, loc.confidence));
+				}
+			}
+
+			//out.write("</trkseg>\n");
+			//out.write("</trk>");
+			out.write("</gpx>");
+			
+			out.flush();
+			out.close();
+			
+			new AlertDialog.Builder(this).setTitle("File Exported")
+			.setMessage("GPX file saved to:\n\n" + file.getPath())
+			.setIcon(android.R.drawable.ic_dialog_info)
+			.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int which) {}
+			})
+			.show();			
+		} catch ( Exception ex ) {
+			new AlertDialog.Builder(this).setTitle("Error Exporting Data")
+			.setMessage("Unable to export the data.\n\nReason: " + ex.getMessage())
+			.setIcon(android.R.drawable.ic_dialog_alert)
+			.setPositiveButton("Ok", new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int which) {}
+			})
+			.show();
+			return;
+		}
 	}
 }
