@@ -9,7 +9,7 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:clickable="true"
-    android:apiKey="0xvPRibgTaSB5vGgLyIvKuqzjFN1DG9zBEXMCiw"
+    android:apiKey="0xvPRibgTaSB3fZfRRPq0g7tVgTceOdToKSgaVg"
 />
 
 <RelativeLayout android:id="@+id/dataSummary" android:layout_height="wrap_content" android:layout_width="fill_parent" android:layout_alignBottom="@id/mapview" android:background="#AA000000" android:visibility="gone">
@@ -23,6 +23,12 @@
 	<TextView android:layout_toRightOf="@id/wifiTowerCount" android:gravity="center_vertical" android:layout_alignTop="@id/iconWifiTower" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Wifi Locations"/> 		
 
 	<TextView android:id="@+id/wifiTowerDates" android:layout_alignBottom="@id/iconWifiTower" android:gravity="center_vertical" android:layout_alignLeft="@id/wifiTowerCount" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="0" android:layout_marginRight="2dip"/> 
+</RelativeLayout>
+
+<RelativeLayout android:id="@+id/replayProgress" android:layout_height="wrap_content" android:layout_width="fill_parent" android:layout_above="@id/dataSummary" android:paddingTop="5dip" android:paddingBottom="10dip"  android:background="#CC000000" android:visibility="gone">
+	<ProgressBar android:id="@+id/progressReplay" android:layout_width="fill_parent" android:layout_height="wrap_content" android:indeterminate="false" android:max="250" style="?android:attr/progressBarStyleHorizontal"/>
+	<TextView android:id="@+id/descReplay1" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Replay History" android:layout_below="@id/progressReplay" android:textSize="18sp" android:textStyle="bold" android:gravity="center"/>
+	<TextView android:id="@+id/descReplay2" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="" android:layout_below="@id/descReplay1" android:textSize="14sp" android:textStyle="bold" android:gravity="center"/>
 </RelativeLayout>
 
 

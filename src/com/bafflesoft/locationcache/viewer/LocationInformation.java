@@ -4,7 +4,7 @@ import java.util.Date;
 
 import com.google.android.maps.GeoPoint;
 
-public class LocationInformation {
+public class LocationInformation implements Comparable<LocationInformation> {
 	public String key;
 	public int    accuracy;
 	public int    confidence;
@@ -26,5 +26,16 @@ public class LocationInformation {
 	public String toString()
 	{
 		return "LocationInformation{ key: " + key + " accuracy: " + accuracy + " confidence: " + confidence + " latitude: " + latIE6 + " longitude: " + lonIE6 + " time: " + getTimeString() + "}";		
+	}
+
+	@Override
+	public int compareTo(LocationInformation another) {
+		if ( this.timestamp < another.timestamp ) {
+			return -1;
+		} else if ( this.timestamp > another.timestamp ) {
+			return 1;
+		} else {
+			return 0;
+		}
 	}
 }

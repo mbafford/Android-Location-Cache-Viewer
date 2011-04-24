@@ -3,8 +3,12 @@ package com.bafflesoft.locationcache.viewer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.SortedSet;
+import java.util.TreeSet;
 
 import android.app.AlertDialog;
 import android.app.AlertDialog.Builder;
@@ -24,6 +28,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -65,6 +70,8 @@ public class MainActivity extends MapActivity {
 	private Markers markersWifi = null;
 	private Markers markersCell = null;
 
+	private SortedSet<LocationInformation> pointsAll = null;
+	
 	private long lastLoad = 0;
 	
 	private boolean firstLoad = true;
@@ -164,10 +171,13 @@ public class MainActivity extends MapActivity {
 				}
 				
 				lastLoad = System.currentTimeMillis();
+				MainActivity.this.pointsAll = new TreeSet<LocationInformation>();
+				MainActivity.this.pointsAll.addAll(pointsCell);
+				MainActivity.this.pointsAll.addAll(pointsWifi);
 				
 				updateLabels();
 				
-				zoomToVisibleMarkers();
+				zoomToVisibleMarkers();				
 			}
 		}
 		
@@ -215,15 +225,6 @@ public class MainActivity extends MapActivity {
 		}
 		
 		initOverlays();
-		
-//		((SlidingDrawer)findViewById(R.id.slider)).setOnDrawerOpenListener(new SlidingDrawer.OnDrawerOpenListener() {
-//			@Override
-//			public void onDrawerOpened() {
-//				LayoutParams params = findViewById(R.id.slider).getLayoutParams();
-//				params.height = findViewById(R.id.content).getMeasuredHeight() + findViewById(R.id.handle).getHeight();
-//				findViewById(R.id.slider).setLayoutParams(params);
-//			}
-//		});
 	}
 	
 	private void showError(String title, Throwable ex)
@@ -338,19 +339,20 @@ public class MainActivity extends MapActivity {
 		findViewById(R.id.dataSummary).setVisibility(View.VISIBLE);
 	}
 	
-	private CharSequence formatDateSpan(long minTS, long maxTS)
+	private CharSequence formatDate(long ts)
 	{
-		Calendar calMin = Calendar.getInstance(Locale.getDefault());
-		calMin.setTimeInMillis(minTS);
-
-		Calendar calMax = Calendar.getInstance(Locale.getDefault());
-		calMax.setTimeInMillis(maxTS);
+		Calendar cal = Calendar.getInstance(Locale.getDefault());
+		cal.setTimeInMillis(ts);
 		
 		SimpleDateFormat fmt = new SimpleDateFormat("yyy.MM.dd h:mm a");
+		
+		return fmt.format(cal.getTime());
+	}
+	
+	private CharSequence formatDateSpan(long minTS, long maxTS)
+	{
 		StringBuilder b = new StringBuilder();
-		b.append(fmt.format(calMin.getTime()));
-		b.append(" - ");
-		b.append(fmt.format(calMax.getTime()));
+		b.append(formatDate(minTS)).append(" - ").append(formatDate(minTS));
 		
 		return b;
 	}
@@ -429,9 +431,7 @@ public class MainActivity extends MapActivity {
 		
 		MenuItem itemAbout = menu.add(Menu.NONE, MENU_ITEM_ABOUT, Menu.NONE, "About");
 		
-		if ( Util.isDebugBuild(this) ) {
-			MenuItem itemReplay = menu.add(Menu.NONE, MENU_ITEM_REPLAY, Menu.NONE, "Replay Tracks");
-		}
+		MenuItem itemReplay = menu.add(Menu.NONE, MENU_ITEM_REPLAY, Menu.NONE, "Replay Tracks");
 		
 		return super.onCreateOptionsMenu(menu);
 	}
@@ -497,25 +497,48 @@ public class MainActivity extends MapActivity {
 	
     private final Handler mMsgHandler = new Handler() {
     	public void handleMessage(android.os.Message msg) {
-    		if ( trackPosition < 0 ) return;
-    		if ( trackPosition >= markersCell.size() ) {
+    		if ( trackPosition < 0 || pointsAll == null || replayIterator == null || !replayIterator.hasNext() ) {
     			trackPosition = -1;
+    			replayIterator = null;
+    			findViewById(R.id.replayProgress).setVisibility(View.GONE);
     			return;
     		}
     		
-			LocationInformationOverlayItem item = markersCell.getItem(trackPosition);
-			MapView mapView = (MapView) findViewById(R.id.mapview);
-			mapView.getController().animateTo(item.getPoint());
+    		final long timeNow = System.currentTimeMillis();
+    		
+			LocationInformation item = replayIterator.next();
+			GeoPoint point = item.getGeoPoint();
+			if ( point != null ) { // null items are in africa and should be ignored
+				MapView mapView = (MapView) findViewById(R.id.mapview);
+				mapView.getController().animateTo(point, new Runnable() {
+					@Override
+					public void run() {
+						long timeAfter = System.currentTimeMillis();
+						long timeLeft  = 1-((timeAfter-timeNow)/1000);
+						mMsgHandler.sendMessageDelayed(new Message(), Math.min(100, timeLeft));
+					}
+				});
+				mapView.getController().setZoom(14);
+				
+				((TextView)findViewById(R.id.descReplay1)).setText(formatDate(item.timestamp));				
+				((TextView)findViewById(R.id.descReplay2)).setText(item.key + " - " + item.accuracy + " meters");				
+			} else {
+				mMsgHandler.sendMessageDelayed(new Message(), 1000);				
+			}
 
-			trackPosition++;
-			mMsgHandler.sendMessageDelayed(new Message(), 1000);
+			trackPosition++;			
+			
+			findViewById(R.id.replayProgress).setVisibility(View.VISIBLE);
+			((ProgressBar)findViewById(R.id.progressReplay)).setMax(pointsAll.size());
+			((ProgressBar)findViewById(R.id.progressReplay)).setProgress(trackPosition);
     	};
     };
-	
-	private void startReplayOfTracks()
+    
+	private Iterator<LocationInformation> replayIterator;	private void startReplayOfTracks()
 	{
 		trackPosition = 0;
-		mMsgHandler.sendMessageDelayed(new Message(), 100);
+		replayIterator = pointsAll.iterator();		
+		mMsgHandler.sendMessageDelayed(new Message(), 0);
 	}
 
 	private List<LocationInformation> loadPoints(String fileName) throws NoRootAccessException, RunCommandException {
