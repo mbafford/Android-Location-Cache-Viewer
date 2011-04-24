@@ -12,24 +12,19 @@
     android:apiKey="0xvPRibgTaSB5vGgLyIvKuqzjFN1DG9zBEXMCiw"
 />
 
-<SlidingDrawer android:id="@+id/slider" android:layout_height="fill_parent" android:layout_alignBottom="@id/mapview" android:layout_width="fill_parent" android:handle="@+id/handle" android:content="@+id/content">
-	<ImageView android:id="@id/handle" android:layout_height="wrap_content" android:layout_width="fill_parent" android:background="@drawable/sliding_drawer_handle" />
+<RelativeLayout android:id="@+id/dataSummary" android:layout_height="wrap_content" android:layout_width="fill_parent" android:layout_alignBottom="@id/mapview" android:background="#AA000000" android:visibility="gone">
+	<ImageView android:id="@+id/iconCellTower" android:src="@drawable/icon_celltower" android:layout_height="wrap_content" android:layout_width="wrap_content" android:layout_marginLeft="5dip"/>
+	<TextView android:id="@+id/cellTowerCount" android:layout_toRightOf="@id/iconCellTower" android:gravity="center_vertical" android:layout_alignTop="@id/iconCellTower" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:layout_marginRight="2dip"/> 
+	<TextView android:layout_toRightOf="@id/cellTowerCount" android:gravity="center_vertical" android:layout_alignTop="@id/iconCellTower" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Cell Tower Locations"/> 
+	<TextView android:id="@+id/cellTowerDates" android:layout_alignBottom="@id/iconCellTower" android:gravity="center_vertical" android:layout_alignLeft="@id/cellTowerCount" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="0" android:layout_marginRight="2dip"/> 
 
-	<RelativeLayout android:id="@id/content" android:layout_height="wrap_content" android:layout_width="fill_parent" android:background="#AA000000">
-		<ImageView android:id="@+id/iconCellTower" android:src="@drawable/icon_celltower" android:layout_height="wrap_content" android:layout_width="wrap_content" android:layout_marginLeft="5dip"/>
-		<TextView android:id="@+id/cellTowerCount" android:layout_toRightOf="@id/iconCellTower" android:gravity="center_vertical" android:layout_alignTop="@id/iconCellTower" android:layout_alignBottom="@id/iconCellTower" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:layout_marginRight="2dip"/> 
-		<TextView android:layout_toRightOf="@id/cellTowerCount" android:gravity="center_vertical" android:layout_alignTop="@id/iconCellTower" android:layout_alignBottom="@id/iconCellTower" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Cell Tower Locations"/> 
+	<ImageView android:id="@+id/iconWifiTower" android:layout_below="@id/cellTowerDates" android:layout_alignLeft="@id/iconCellTower" android:src="@drawable/icon_wifi" android:layout_height="wrap_content" android:layout_width="wrap_content"/>
+	<TextView android:id="@+id/wifiTowerCount" android:layout_toRightOf="@id/iconWifiTower" android:gravity="center_vertical" android:layout_alignTop="@id/iconWifiTower" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:layout_marginRight="2dip"/> 		
+	<TextView android:layout_toRightOf="@id/wifiTowerCount" android:gravity="center_vertical" android:layout_alignTop="@id/iconWifiTower" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Wifi Locations"/> 		
 
-		<TextView android:id="@+id/cellTowerDates" android:layout_below="@id/iconCellTower" android:gravity="center_vertical" android:layout_alignLeft="@id/iconCellTower" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="0" android:layout_marginRight="2dip"/> 
+	<TextView android:id="@+id/wifiTowerDates" android:layout_alignBottom="@id/iconWifiTower" android:gravity="center_vertical" android:layout_alignLeft="@id/wifiTowerCount" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="0" android:layout_marginRight="2dip"/> 
+</RelativeLayout>
 
-		<ImageView android:id="@+id/iconWifiTower" android:layout_below="@id/cellTowerDates" android:layout_alignLeft="@id/iconCellTower" android:src="@drawable/icon_wifi" android:layout_height="wrap_content" android:layout_width="wrap_content"/>
-		<TextView android:id="@+id/wifiTowerCount" android:layout_toRightOf="@id/iconWifiTower" android:gravity="center_vertical" android:layout_alignTop="@id/iconWifiTower" android:layout_alignBottom="@id/iconWifiTower" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="0" android:layout_marginRight="2dip"/> 		
-		<TextView android:layout_toRightOf="@id/wifiTowerCount" android:gravity="center_vertical" android:layout_alignTop="@id/iconWifiTower" android:layout_alignBottom="@id/iconWifiTower" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="Wifi Locations"/> 		
-
-		<TextView android:id="@+id/wifiTowerDates" android:layout_below="@id/iconWifiTower" android:gravity="center_vertical" android:layout_alignLeft="@id/iconWifiTower" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="0" android:layout_marginRight="2dip"/> 
-	</RelativeLayout>
-	<TextView android:id="@id/content" android:layout_height="wrap_content" android:layout_width="fill_parent" android:text="Opened Drawer"/>
-</SlidingDrawer>
 
 <!--  58:D7:2F:4D:63:82:D0:6E:56:F7:A7:83:84:25:8E:4B == 0xvPRibgTaSB5vGgLyIvKuqzjFN1DG9zBEXMCiw -->
 <!--  debug == 0xvPRibgTaSB3fZfRRPq0g7tVgTceOdToKSgaVg -->

@@ -1,6 +1,5 @@
 package com.bafflesoft.locationcache.viewer;
 
-import java.io.FileNotFoundException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -24,6 +23,7 @@ import android.os.Message;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -334,6 +334,8 @@ public class MainActivity extends MapActivity {
 		((TextView)findViewById(R.id.cellTowerCount)).setText(String.valueOf(cellCount));
 		((TextView)findViewById(R.id.wifiTowerDates)).setText(wifiDateSpan);
 		((TextView)findViewById(R.id.cellTowerDates)).setText(cellDateSpan);
+	
+		findViewById(R.id.dataSummary).setVisibility(View.VISIBLE);
 	}
 	
 	private CharSequence formatDateSpan(long minTS, long maxTS)
