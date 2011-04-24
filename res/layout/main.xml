@@ -9,7 +9,7 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent"
     android:clickable="true"
-    android:apiKey="0xvPRibgTaSB3fZfRRPq0g7tVgTceOdToKSgaVg"
+    android:apiKey="0xvPRibgTaSB5vGgLyIvKuqzjFN1DG9zBEXMCiw"
 />
 
 <RelativeLayout android:id="@+id/dataSummary" android:layout_height="wrap_content" android:layout_width="fill_parent" android:layout_alignBottom="@id/mapview" android:background="#AA000000" android:visibility="gone">

@@ -67,6 +67,7 @@ public class MainActivity extends MapActivity {
 	private static final int MENU_ITEM_ABOUT   = 6;
 	private static final int MENU_ITEM_REPLAY  = 5;
 	private static final int MENU_ITEM_EXPORT  = 7;
+	private static final int MENU_ITEM_RELOAD  = 8;
 
 	private static final String FOLDER_CACHE        = "/data/data/com.google.android.location/files/";
 	private static final String LOCATION_CACHE_CELL = FOLDER_CACHE + "cache.cell";
@@ -265,14 +266,21 @@ public class MainActivity extends MapActivity {
 	@Override
 	protected void onResume() {
 		super.onResume();
-		
+				
 		if ( noRoot ) return;
 		
+		loadOrReloadData(false);
+	}
+	
+	private void loadOrReloadData(boolean force)
+	{
 		// only load if it's been at least 5 minutes since the last load
-		if ( task == null && (System.currentTimeMillis() - lastLoad) > (1000 * 60 * 5) ) {
-			task = new LoadDataTask();
-			task.execute((Void[])null);
-		}	
+		if ( task == null ) {
+			if ( force || (System.currentTimeMillis() - lastLoad) > (1000 * 60 * 5) ) {
+				task = new LoadDataTask();
+				task.execute((Void[])null);
+			}
+		}			
 	}
 	
 	@Override
@@ -415,7 +423,6 @@ public class MainActivity extends MapActivity {
 		mapView.invalidate();
 	}
 
-
 	@Override
 	public boolean onCreateOptionsMenu(Menu menu) {
 		MenuItem itemWifi = menu.add(Menu.NONE, MENU_ITEM_WIFI, Menu.NONE, "Hide Wifi Locations");
@@ -427,10 +434,7 @@ public class MainActivity extends MapActivity {
 		itemCell.setCheckable(true);
 		itemCell.setChecked(true);
 		itemCell.setIcon(R.drawable.icon_celltower);
-		
-		MenuItem itemZoom = menu.add(Menu.NONE, MENU_ITEM_ZOOM, Menu.NONE, "Zoom to All");
-		itemZoom.setIcon(android.R.drawable.ic_menu_zoom);
-		
+				
 		MenuItem itemHeatmap = menu.add(Menu.NONE, MENU_ITEM_HEATMAP, Menu.NONE, "Disable Heatmap");
 		itemHeatmap.setCheckable(true);
 		itemHeatmap.setChecked(true);
@@ -438,13 +442,32 @@ public class MainActivity extends MapActivity {
 		MenuItem itemAbout = menu.add(Menu.NONE, MENU_ITEM_ABOUT, Menu.NONE, "About");
 		itemAbout.setIcon(android.R.drawable.ic_menu_info_details);
 		
-		MenuItem itemReplay = menu.add(Menu.NONE, MENU_ITEM_REPLAY, Menu.NONE, "Replay Tracks");
+		MenuItem itemReplay = menu.add(Menu.NONE, MENU_ITEM_REPLAY, Menu.NONE, "Play Tracks");
 		itemReplay.setIcon(android.R.drawable.ic_media_play);
 
 		MenuItem itemExport = menu.add(Menu.NONE, MENU_ITEM_EXPORT, Menu.NONE, "Export to GPX");
 		itemExport.setIcon(android.R.drawable.ic_menu_save);
+		
+		MenuItem itemZoom = menu.add(Menu.NONE, MENU_ITEM_ZOOM, Menu.NONE, "Zoom to All");
+		itemZoom.setIcon(android.R.drawable.ic_menu_zoom);
+
+		MenuItem itemReload = menu.add(Menu.NONE, MENU_ITEM_RELOAD, Menu.NONE, "Reload Points");
 
 		return super.onCreateOptionsMenu(menu);
+	}
+	
+	@Override
+	public boolean onPrepareOptionsMenu(Menu menu) {		
+		MenuItem itemReplay = menu.findItem(MENU_ITEM_REPLAY);
+		if ( replayIterator != null && replayIterator.hasNext() ) {
+			itemReplay.setTitle("Stop Playing");
+			itemReplay.setIcon(android.R.drawable.ic_media_pause);
+		} else {
+			itemReplay.setTitle("Play Tracks");
+			itemReplay.setIcon(android.R.drawable.ic_media_play);
+		}
+
+		return super.onPrepareOptionsMenu(menu);
 	}
 	
 	@Override
@@ -496,12 +519,18 @@ public class MainActivity extends MapActivity {
 			mapView.invalidate();
 			item.setChecked(!item.isChecked());
 		} else if ( item.getItemId() == MENU_ITEM_REPLAY ) {
-			startReplayOfTracks();			
+			if ( replayIterator != null && replayIterator.hasNext() ) {
+				replayIterator = null;
+			} else {
+				startReplayOfTracks();			
+			}
 		} else if ( item.getItemId() == MENU_ITEM_ABOUT ) {
 			AboutDialog dialog = new AboutDialog(this);
 			dialog.show();
 		} else if ( item.getItemId() == MENU_ITEM_EXPORT ) {
 			exportData();
+		} else if ( item.getItemId() == MENU_ITEM_RELOAD ) {
+			loadOrReloadData(true);
 		}
 		return super.onMenuItemSelected(featureId, item);
 	}
