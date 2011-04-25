@@ -115,10 +115,12 @@ public class MainActivity extends MapActivity {
 		protected void onCancelled() {
 			super.onCancelled();
 			
-			if ( dialog != null ) {
-				dialog.dismiss();
-				dialog = null;
-			}
+			try {
+				if ( dialog != null ) {
+					dialog.dismiss();
+					dialog = null;
+				}
+			} catch ( Exception ex ) { } // ignore the "View not attached to a window manager" exception
 
 			task = null;
 		}
@@ -127,8 +129,12 @@ public class MainActivity extends MapActivity {
 		protected void onPostExecute(Boolean result) {
 			super.onPostExecute(result);
 
-			dialog.dismiss();
-			dialog = null;
+			try {
+				if ( dialog != null ) {
+					dialog.dismiss();
+					dialog = null;
+				}
+			} catch ( Exception ex ) { } // ignore the "View not attached to a window manager" exception
 
 			task = null;
 			
