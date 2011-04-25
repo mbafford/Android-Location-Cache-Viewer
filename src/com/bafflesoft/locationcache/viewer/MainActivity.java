@@ -178,8 +178,12 @@ public class MainActivity extends MapActivity {
 				
 				lastLoad = System.currentTimeMillis();
 				MainActivity.this.pointsAll = new TreeSet<LocationInformation>();
-				MainActivity.this.pointsAll.addAll(pointsCell);
-				MainActivity.this.pointsAll.addAll(pointsWifi);
+				if ( pointsCell != null && pointsCell.size() > 0 ) {
+					MainActivity.this.pointsAll.addAll(pointsCell);
+				}
+				if ( pointsWifi != null && pointsWifi.size() > 0 ) {
+					MainActivity.this.pointsAll.addAll(pointsWifi);
+				}
 				
 				updateLabels();
 				
