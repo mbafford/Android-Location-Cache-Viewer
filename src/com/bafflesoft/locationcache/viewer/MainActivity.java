@@ -18,12 +18,15 @@ import android.app.AlertDialog.Builder;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
 import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -44,6 +47,9 @@ import com.google.android.maps.MapView;
 import com.google.android.maps.Projection;
 
 public class MainActivity extends MapActivity {
+	private static final String PREF_SHOWED_SU_WARNING  = "SHOWED_SU_WARNING";
+	private static final String PREF_SHOWED_ICS_WARNING = "SHOWED_ICS_WARNING";
+
 	private static final int THRESHOLD_HEATMAP = 150;	
 	
 	public class NoRootAccessException extends Exception {	
@@ -73,6 +79,9 @@ public class MainActivity extends MapActivity {
 	private static final String LOCATION_CACHE_CELL = FOLDER_CACHE + "cache.cell";
 	private static final String LOCATION_CACHE_WIFI = FOLDER_CACHE + "cache.wifi";
 	
+	// pulled from http://developer.android.com/reference/android/os/Build.VERSION_CODES.html#GINGERBREAD
+	private static final int BUILD_VERSION_CODE_GINGERBREAD_MR1 = 10;
+	
 	private Markers markersWifi = null;
 	private Markers markersCell = null;
 
@@ -81,7 +90,7 @@ public class MainActivity extends MapActivity {
 	private long lastLoad = 0;
 	
 	private boolean firstLoad = true;
-	private boolean noRoot    = false;
+	private boolean noRoot    = true;
 	
 	private ProgressDialog dialog = null;
 	private LoadDataTask   task   = null;
@@ -162,6 +171,10 @@ public class MainActivity extends MapActivity {
 					}
 					message.append("This data is only stored if you have enabled the 'Wireless Networks' options under Settings -> Locations\n\nOtherwise, Android does not cache this data.");
 					
+					if ( isRunningUnsupportedVersion() ) {
+						message.append("\n\nYou are running an unsupported version of Android (newer than Gingerbread MR1 - 2.3.3). It is possible your phone does not store a location cache.");
+					}
+					
 					Builder builder = new AlertDialog.Builder(MainActivity.this).setTitle("Location Data Does Not Exist")
 					.setMessage(message)
 					.setIcon(android.R.drawable.ic_dialog_alert)
@@ -229,6 +242,88 @@ public class MainActivity extends MapActivity {
 		
 		}
 		
+		
+		showICSWarning();
+	}
+	
+	private void showSUWarning() {
+		SharedPreferences prefs = getPreferences(Context.MODE_PRIVATE);
+
+		boolean showedSUWarning = prefs.getBoolean(PREF_SHOWED_SU_WARNING, false);
+		
+		if ( !showedSUWarning ) {		
+			new AlertDialog.Builder(this).setTitle("Root Access Required")
+			.setMessage("This application requests root in order to read files which are normally not visible to an application.\n\n" + 
+			"The files are only READ, and nothing else, but if you are not comofrtable with giving this application root access, then please click \"Quit Now\" or deny root access.\n\n" +
+			"If you are curious about what this program will be doing, full source code is available on Github.")
+			.setIcon(android.R.drawable.ic_dialog_alert)
+			.setOnCancelListener(new DialogInterface.OnCancelListener() {
+				public void onCancel(DialogInterface dialog) {
+					finish();
+				}
+			})
+			.setNegativeButton("Quit Now", new DialogInterface.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					finish();
+				}
+			})
+			.setPositiveButton("Continue", new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int which) { 
+					setPreferenceFlag(PREF_SHOWED_SU_WARNING, true);
+					finishStartup();
+				}
+			})
+			.show();
+		} else {
+			finishStartup();
+		}
+	}
+
+	private void showICSWarning() {
+		SharedPreferences prefs = getPreferences(Context.MODE_PRIVATE);
+
+		boolean showedICSWarning  = prefs.getBoolean(PREF_SHOWED_ICS_WARNING, false);
+		
+		if ( isRunningUnsupportedVersion() && !showedICSWarning ) { 
+			new AlertDialog.Builder(this).setTitle("Unsupported Android Version")
+			.setMessage("You are running a version of Android later than the last known working version (Gingerbread MR1 - 2.3.3).\n\n" + 
+			"It looks like the location cache files are no longer stored in your version of Android.\n\n" + 
+			"There is no harm or danger in running this program, but it will likely not find any location cache files to view.\n\n" +
+			"I am sorry if this program cannot be of use to you, but be happy you (maybe) have no cache files tracking you!")
+			.setIcon(android.R.drawable.ic_dialog_alert)
+			.setOnCancelListener(new DialogInterface.OnCancelListener() {
+				public void onCancel(DialogInterface dialog) {
+					finish();
+				}
+			})
+			.setNegativeButton("Quit Now", new DialogInterface.OnClickListener() {
+				@Override
+				public void onClick(DialogInterface dialog, int which) {
+					finish();
+				}
+			})
+			.setPositiveButton("Continue", new DialogInterface.OnClickListener() {
+				public void onClick(DialogInterface dialog, int which) { 
+					setPreferenceFlag(PREF_SHOWED_ICS_WARNING, true);
+					showSUWarning();
+				}
+			})
+			.show();
+			
+		} else {
+			showSUWarning();
+		}
+	}
+	
+	private boolean isRunningUnsupportedVersion() {
+		return Build.VERSION.SDK_INT > BUILD_VERSION_CODE_GINGERBREAD_MR1;
+	}
+
+	private void finishStartup()
+	{
+		setPreferenceFlag(PREF_SHOWED_SU_WARNING, true);
+		
 		try {
 			ShellCommand cmd = new ShellCommand();
 			if ( !cmd.canSU(true) ) {
@@ -242,6 +337,14 @@ public class MainActivity extends MapActivity {
 		}
 		
 		initOverlays();
+	}
+	
+	private void setPreferenceFlag(String pref, boolean value)
+	{
+		SharedPreferences prefs = getPreferences(Context.MODE_PRIVATE);
+		Editor prefEdit = prefs.edit();
+		prefEdit.putBoolean(pref, true);
+		prefEdit.commit();
 	}
 	
 	private void showError(String title, Throwable ex)
