@@ -479,7 +479,7 @@ public class MainActivity extends MapActivity {
 	private CharSequence formatDateSpan(long minTS, long maxTS)
 	{
 		StringBuilder b = new StringBuilder();
-		b.append(formatDate(minTS)).append(" - ").append(formatDate(minTS));
+		b.append(formatDate(minTS)).append(" - ").append(formatDate(maxTS));
 		
 		return b;
 	}
